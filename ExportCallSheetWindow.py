@@ -8,13 +8,13 @@ if __name__ == "__main__":
 	except:
 	    app = QtCore.QCoreApplication.instance()
 
-	MainWindow = QtGui.QMainWindow()
+	
 	ui = Ui_Dialog()
-	ui.setupUi(MainWindow)
-	MainWindow.show()
+	ui.setupUi()
+	ui.Dialog.show()
 	t = threading.Thread(target = lambda: app.exec_())
 	t.daemon = True
-	t.start()
+	#t.start()
 
 
 	print "App freezes the main process!"

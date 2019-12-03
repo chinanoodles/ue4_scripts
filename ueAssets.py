@@ -19,8 +19,10 @@ class hex_assets:
 	    self.jsonData = None
 	    self.json_name = None
 	    self.csv_name = None
+
 	def setCallsheetPath(self,path):
 		self.callsheet_path = path
+
 	def setfbxPath(self,path):
 		self.fbx_path = path
 	def setJsonName(self,json_name):
@@ -106,18 +108,20 @@ class hex_assets:
 		task.set_editor_property('filename', filename)
 		task.set_editor_property('object', asset_obj)
 		task.set_editor_property('options', options)
-		task.set_editor_property('prompt',False)
+		task.set_editor_property('prompt',True)
 	    
 		return task
 	def buildStaticMeshExportOptions(self):
 		options = unreal.FbxExportOption()
 		# unreal.FbxImportUI
 		options.set_editor_property('collision', False)
-		options.set_editor_property('level_of_detail', False)
+		
 		options.set_editor_property('vertex_color', False)
 		options.set_editor_property('map_skeletal_motion_to_root', False)  # Static Mesh
-
-		#options.set_editor_property('fbx_export_compatibility',2)
+		options.set_editor_property('level_of_detail', False)
+		#options.set_editor_property('fbx_export_compatibility',unreal.FbxExportCompatibility.FBX_2016)
+		return options
+		
 		# unreal.FbxMeshImportData
 	def exportMyAsset(assets_path,output_path):
 		asset_data = unreal.AssetData(assets_path)
@@ -142,3 +146,69 @@ class hex_assets:
 			tasks.append(task_fbx)
 			
 		unreal.Exporter.run_asset_export_tasks(tasks)
+
+	#------------------- Import Task ------------------------------------------------------------
+
+	def buildImportTask(self,filename='', destination_path='', options=None):
+		task = unreal.AssetImportTask()
+		task.set_editor_property('automated', True)
+		task.set_editor_property('destination_name', '')
+		task.set_editor_property('destination_path', destination_path)
+		task.set_editor_property('filename', filename)
+		task.set_editor_property('replace_existing', True)
+		task.set_editor_property('save', True)
+		task.set_editor_property('options', options)
+		return task
+
+	# tasks: obj List : The import tasks object. You can get them from buildImportTask()
+	# return: str List : The paths of successfully imported assets
+	def executeImportTasks(self,tasks=[]):
+		unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks(tasks)
+		imported_asset_paths = []
+		for task in tasks:
+			for path in task.get_editor_property('imported_object_paths'):
+				imported_asset_paths.append(path)
+		return imported_asset_paths
+
+
+	# return: obj : Import option object. The basic import options for importing a static mesh
+	def buildStaticMeshImportOptions(self):
+		options = unreal.FbxImportUI()
+		# unreal.FbxImportUI
+		options.set_editor_property('import_mesh', True)
+		options.set_editor_property('import_textures', False)
+		options.set_editor_property('import_materials', False)
+		options.set_editor_property('import_as_skeletal', False)  # Static Mesh
+		# unreal.FbxMeshImportData
+		options.static_mesh_import_data.set_editor_property('import_translation', unreal.Vector(0.0, 0.0, 0.0))
+		options.static_mesh_import_data.set_editor_property('import_rotation', unreal.Rotator(0.0, 0.0, 0.0))
+		options.static_mesh_import_data.set_editor_property('import_uniform_scale', 1.0)
+		# unreal.FbxStaticMeshImportData
+		options.static_mesh_import_data.set_editor_property('combine_meshes', True)
+		options.static_mesh_import_data.set_editor_property('generate_lightmap_u_vs', True)
+		options.static_mesh_import_data.set_editor_property('auto_generate_collision', True)
+		return options
+
+	def importMyAssets(self):
+		filepath = self.callsheet_path
+		#file = "G:/output/NEW/shot/assets/assetsrock/efx/blendingRock_lib.json"
+
+		file = filepath
+		with open(file,"r") as json_file:
+			data = json.load(json_file)
+		for asset_name in data: 
+			mesh_fbx = data[asset_name]["fbxpath"]
+			base_color = data[asset_name]["base_cd_path"]
+			normal_texture =  data[asset_name]["normal_tex_path"]
+			ao_texture = data[asset_name]["ao_tex_path"]
+			destination_path = data[asset_name]["uepath"]
+			destination_path = destination_path.replace(asset_name+"."+asset_name,"")
+
+			options = self.buildStaticMeshImportOptions()
+			task_fbx = self.buildImportTask(mesh_fbx,destination_path,options)
+			task_Cd = self.buildImportTask(base_color,destination_path)
+			task_N = self.buildImportTask(normal_texture,destination_path)
+			task_ao = self.buildImportTask(ao_texture,destination_path)
+			tasks = [ task_fbx,task_Cd,task_N,task_ao ]
+			
+			self.executeImportTasks(tasks)
