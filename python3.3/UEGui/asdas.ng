@@ -1,0 +1,5 @@
+command: houdini
+short_help: Houdini 18.460
+packages:
+  - houdini-18.0
+  - houdini_qlib
